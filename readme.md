@@ -4,7 +4,7 @@
 # Description
 This is a mobile app chat app created with react native, its both opimized for IOS & Adroid, you can share images, and your location!
 
-# How to rum this project?
+# How to run this project?
 ### Pre-requisites to clone the project
 Install [Expo](https://expo.dev/): 
 ```
