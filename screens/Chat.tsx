@@ -1,9 +1,11 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { onAuthStateChanged, signInAnonymously, User } from "firebase/auth";
 import { addDoc, collection, onSnapshot, DocumentData, QuerySnapshot, orderBy, query } from "firebase/firestore";
+import * as Permissions from "expo-permissions";
+import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useState } from "react";
 
-import { StyleSheet, View } from "react-native";
+import { Button, StyleSheet, View } from "react-native";
 import { GiftedChat, InputToolbar } from "react-native-gifted-chat";
 import { auth, db } from "../firebase/firebase-config";
 import { RootStackParmList } from "../navigation/RootStack";
@@ -11,6 +13,8 @@ import { RootStackParmList } from "../navigation/RootStack";
 import { IMessage } from "./types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import CustomActions from "../components/CustomActions";
+import MapView from "react-native-maps";
 
 type Props = NativeStackScreenProps<RootStackParmList, "Chat">;
 
@@ -52,7 +56,7 @@ const Chat = ({ navigation, route }: Props) => {
   }, []);
 
   const onCollectionUpdate = (querySnapshot: QuerySnapshot) => {
-    const messages2: IMessage[] = [];
+    const messages2: any = [];
     querySnapshot.forEach((doc: DocumentData) => {
       let data = doc.data();
       messages2.push({
@@ -60,6 +64,8 @@ const Chat = ({ navigation, route }: Props) => {
         text: data.text,
         createdAt: data.createdAt.toDate(),
         user: data.user,
+        image: data.image || null,
+        location: data.location || null,
       });
     });
     setMessages(messages2);
@@ -68,15 +74,7 @@ const Chat = ({ navigation, route }: Props) => {
   const addMessage = async (message: IMessage[]) => {
     const messagesCollectionRef = collection(db, "Messages");
 
-    await addDoc(messagesCollectionRef, {
-      text: message[0].text,
-      _id: message[0]._id,
-      createdAt: message[0].createdAt,
-      user: {
-        _id: user?.uid,
-        name: username,
-      },
-    });
+    await addDoc(messagesCollectionRef, message[0]);
 
     saveMessages();
   };
@@ -106,9 +104,42 @@ const Chat = ({ navigation, route }: Props) => {
     }
   };
 
+  const renderCustomActions = (props: any) => {
+    return <CustomActions {...props} />;
+  };
+
+  function renderCustomView(props: any) {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{
+            width: 150,
+            height: 100,
+            borderRadius: 13,
+            margin: 3,
+          }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
   return (
     <View style={{ ...styles.container, backgroundColor: backgroundColor }}>
-      <GiftedChat messages={messages} onSend={(message: IMessage[]) => addMessage(message)} renderInputToolbar={renderInputToolbar} />
+      <GiftedChat
+        renderActions={renderCustomActions}
+        renderCustomView={renderCustomView}
+        messages={messages}
+        onSend={(message: IMessage[]) => addMessage(message)}
+        renderInputToolbar={renderInputToolbar}
+      />
     </View>
   );
 };
